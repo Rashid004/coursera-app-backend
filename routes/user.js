@@ -49,6 +49,9 @@ userRouter.post("/signup", async (req, res) => {
 });
 
 userRouter.post("/signin", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+
   res.json({ message: "signin endpoint" });
 });
 
