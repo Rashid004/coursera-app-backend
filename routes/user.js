@@ -33,6 +33,8 @@ userRouter.post("/signup", async (req, res) => {
   const firstName = req.body.firstName;
   const lastName = req.body.lastName;
 
+  const passwordHash = await
+
   try {
     await userModel.create({
       email: email,
@@ -48,6 +50,8 @@ userRouter.post("/signup", async (req, res) => {
   res.json({ message: "signup endpoint" });
 });
 
+
+// Sign in routes
 userRouter.post("/signin", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
