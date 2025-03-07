@@ -1,8 +1,11 @@
 const { Router } = require("express");
 const { z } = require("zod");
 const userRouter = Router();
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const { userModel } = require("../db");
+require("dotenv").config();
 
 userRouter.post("/signup", async (req, res) => {
   const requireBody = z.object({
@@ -28,17 +31,21 @@ userRouter.post("/signup", async (req, res) => {
     });
   }
 
-  const email = req.body.email;
-  const password = req.body.password;
-  const firstName = req.body.firstName;
-  const lastName = req.body.lastName;
+  const { email, password, firstName, lastName } = req.body;
 
-  const passwordHash = await
+  const existingUser = await userModel.findOne({ email: email });
+  if (existingUser) {
+    res.json({ message: "Email is already in use" });
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  console.log(email, hashedPassword, firstName, lastName);
 
   try {
     await userModel.create({
       email: email,
-      password: password,
+      password: hashedPassword,
       firstName: firstName,
       lastName: lastName,
     });
@@ -47,14 +54,23 @@ userRouter.post("/signup", async (req, res) => {
     res.status(403).json({ message: "Credential is Incorrect" });
   }
 
-  res.json({ message: "signup endpoint" });
+  res.json({ message: "signup Succeed" });
 });
 
-
 // Sign in routes
-userRouter.post("/signin", (req, res) => {
+userRouter.post("/signin", async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+
+  const user = userModel.findOne({ email: email });
+  const passwordMatch = bcrypt.compare(password, user.password);
+
+  if (user && passwordMatch) {
+    const token = jwt.sign({ id: user._id }, process.env.SCRECT_KEY_JWT);
+    res.json({ token });
+  } else {
+    res.status(403).json({ message: "Invalid Credential" });
+  }
 
   res.json({ message: "signin endpoint" });
 });
