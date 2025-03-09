@@ -1,11 +1,14 @@
+require("dotenv").config();
 const { Router } = require("express");
 const { z } = require("zod");
 const userRouter = Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const { userModel } = require("../db");
-require("dotenv").config();
+const { userModel, purchaseModel, courseModel } = require("../db");
+const { userMiddleware } = require("./middleware/user");
+
+const USER_JWT_SECRET = process.env.USER_SECRET_KEY;
 
 userRouter.post("/signup", async (req, res) => {
   const requireBody = z.object({
@@ -66,7 +69,7 @@ userRouter.post("/signin", async (req, res) => {
   const passwordMatch = bcrypt.compare(password, user.password);
 
   if (user && passwordMatch) {
-    const token = jwt.sign({ id: user._id }, process.env.SCRECT_KEY_JWT);
+    const token = jwt.sign({ id: user._id }, USER_JWT_SECRET);
     res.json({ token });
   } else {
     res.status(403).json({ message: "Invalid Credential" });
@@ -75,8 +78,16 @@ userRouter.post("/signin", async (req, res) => {
   res.json({ message: "signin endpoint" });
 });
 
-userRouter.get("/purchases", (req, res) => {
-  res.json({ message: "purchases endpoint" });
+// Purchases
+userRouter.get("/purchases", userMiddleware, async (req, res) => {
+  const userId = req.userId;
+
+  const purchases = await purchaseModel.find({ userId });
+
+  const courseData = await courseModel.find({
+    _id: { $in: purchases.map((x) => x.courseId) },
+  });
+  res.json({ purchases, courseData });
 });
 
 module.exports = {

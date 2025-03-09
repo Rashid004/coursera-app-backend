@@ -1,10 +1,14 @@
 const { Router } = require("express");
 const adminRouter = Router();
+
+const { adminModel, courseModel } = require("../db");
+const { adminMiddleware } = require("./middleware/admin");
+
 const { z } = require("zod");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { adminModel } = require("../db");
-const { ADMIN_SCRECT_KEY_JWT } = require("../config");
+const ADMIN_SCRECT_KEY_JWT = process.env.ADMIN_SECRET_KEY;
+console.log(process.env.ADMIN_SECRET_KEY);
 
 adminRouter.post("/signup", async (req, res) => {
   const requireBody = z.object({
@@ -24,7 +28,7 @@ adminRouter.post("/signup", async (req, res) => {
   const pasrsedBodyWithSuccess = requireBody.safeParse(req.body);
 
   if (!pasrsedBodyWithSuccess.success) {
-    res.json({
+    return res.json({
       message: pasrsedBodyWithSuccess.success,
       error: pasrsedBodyWithSuccess.error,
     });
@@ -43,7 +47,7 @@ adminRouter.post("/signup", async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(403).json({ message: "Credential Incorrect" });
+    return res.status(403).json({ message: "Credential Incorrect" });
   }
 
   res.json({ message: "AdminSignup Succeed" });
@@ -58,22 +62,67 @@ adminRouter.post("/signin", async (req, res) => {
 
   if (admin && comparePassword) {
     const token = jwt.sign({ id: admin._id }, ADMIN_SCRECT_KEY_JWT);
-
-    res.json({ token: token });
+    return res.json({ token: token });
   } else {
-    res.status(403).json({ message: "Invalid Credential" });
+    return res.status(403).json({ message: "Invalid Credential" });
   }
 
   res.json({ message: "Signin Succed" });
 });
-adminRouter.post("/", (req, res) => {
-  res.json({ message: "course endpoint" });
+// Create Course
+adminRouter.post("/course", adminMiddleware, async function (req, res) {
+  const adminId = req.userId;
+
+  const { title, description, imageUrl, price } = req.body;
+  try {
+    const course = await courseModel.create({
+      title,
+      description,
+      imageUrl,
+      price,
+      creatorId: adminId,
+    });
+
+    return res.json({
+      message: "Course created",
+      courseId: course._id,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(403).json({ message: "Credential Invalid" });
+  }
 });
-adminRouter.put("/", (req, res) => {
-  res.json({ message: "course endpoint" });
+
+// Update an Course content
+adminRouter.put("/course", adminMiddleware, async (req, res) => {
+  const adminId = req.userId;
+
+  const { title, description, price, imageUrl, courseId } = req.body;
+
+  const course = await courseModel.updateOne(
+    {
+      _id: courseId,
+      creatorId: adminId,
+    },
+    {
+      title: title,
+      description: description,
+      price: price,
+      imageUrl: imageUrl,
+      creatorId: adminId,
+    }
+  );
+  res.json({ message: "Course updated", courseId: course._id });
 });
-adminRouter.get("/bulk", (req, res) => {
-  res.json({ message: "course endpoint" });
+
+// Get All Course
+adminRouter.get("/course/bulk", adminMiddleware, async (req, res) => {
+  const adminId = req.adminId;
+
+  const course = await courseModel.find({
+    creatorId: adminId,
+  });
+  res.json({ course: course });
 });
 
 module.exports = {
