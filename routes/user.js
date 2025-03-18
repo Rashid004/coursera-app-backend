@@ -6,7 +6,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const { userModel, purchaseModel, courseModel } = require("../db");
-const { userMiddleware } = require("./middleware/user");
+const { userMiddleware } = require("../middleware/user");
 
 const USER_JWT_SECRET = process.env.USER_SECRET_KEY;
 
@@ -75,7 +75,7 @@ userRouter.post("/signin", async (req, res) => {
     res.status(403).json({ message: "Invalid Credential" });
   }
 
-  res.json({ message: "signin endpoint" });
+  res.json({ message: "signin succeed" });
 });
 
 // Purchases
