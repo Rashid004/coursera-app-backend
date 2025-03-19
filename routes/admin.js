@@ -2,7 +2,7 @@ const { Router } = require("express");
 const adminRouter = Router();
 
 const { adminModel, courseModel } = require("../db");
-const { adminMiddleware } = require("./middleware/admin");
+const { adminMiddleware } = require("../middleware/admin");
 
 const { z } = require("zod");
 const bcrypt = require("bcrypt");
